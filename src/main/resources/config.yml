@@ -40,3 +40,6 @@ regenerate-delay: 10 # Regeneration delay in seconds, plus a random delay of up 
 strengthen-trial-mobs: true
 
 trial-vault-reset-time: 86400000 # Time in Milliseconds, set to -1 to disable. Default is 24 hours (1000 * 60 * 60 * 24 = 86400000)
+vault-reset-allowed-key-materials: # Only vaults whose configured key item uses one of these materials will be managed.
+  - TRIAL_KEY
+  - OMINOUS_TRIAL_KEY

@@ -40,13 +40,13 @@ public class TrialSpawnerListener implements Listener {
     }
 
     public void healthMultiplier(LivingEntity entity, double healthMultiplier) {
-        AttributeInstance maxHealth = entity.getAttribute(Attribute.GENERIC_MAX_HEALTH);
+        AttributeInstance maxHealth = entity.getAttribute(Attribute.MAX_HEALTH);
         maxHealth.setBaseValue(maxHealth.getBaseValue() * healthMultiplier);
         entity.setHealth(maxHealth.getValue());
     }
 
     public void damageMultiplier(LivingEntity entity, double damageMultiplier) {
-        AttributeInstance attackDamage = entity.getAttribute(Attribute.GENERIC_ATTACK_DAMAGE);
+        AttributeInstance attackDamage = entity.getAttribute(Attribute.ATTACK_DAMAGE);
         attackDamage.setBaseValue(attackDamage.getBaseValue() * damageMultiplier);
     }
 
@@ -269,7 +269,7 @@ public class TrialSpawnerListener implements Listener {
             entity.setCustomName(secretName);
             entity.setCustomNameVisible(true);
             healthMultiplier(entity, 4);
-            entity.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED).setBaseValue(1.2);
+            entity.getAttribute(Attribute.MOVEMENT_SPEED).setBaseValue(1.2);
         }
     }
 }
