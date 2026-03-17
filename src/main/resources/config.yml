@@ -31,7 +31,7 @@ blocks-to-protect:
   - WAXED_OXIDIZED_COPPER_BULB
 
 glowing-effect: true
-mining-fatigue-level: 2 # Set to 0 to disable
+mining-fatigue-level: 2 # Valid values: 1-3, anything else disables
 
 decay-placed-blocks: true
 decay-delay: 10 # Decay delay in seconds

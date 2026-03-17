@@ -66,7 +66,7 @@ public final class TrickierTrials extends JavaPlugin implements CommandExecutor 
         regenerateBrokenBlocks = config.getBoolean("regenerate-broken-blocks", true);
         strengthenTrialMobs = config.getBoolean("strengthen-trial-mobs", true);
         trialVaultResetTime = config.getLong("trial-vault-reset-time", 86400000L);
-        glowingEffect = config.getBoolean("modules.glowing-effect", true);
+        glowingEffect = config.getBoolean("glowing-effect", true);
         secret = config.getBoolean("easter-egg", false);
         secretName = config.getString("easter-egg-name", "Klein Tiade");
 

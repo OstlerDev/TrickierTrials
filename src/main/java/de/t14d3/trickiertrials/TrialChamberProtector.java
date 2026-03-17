@@ -98,7 +98,8 @@ public class TrialChamberProtector implements Listener {
 
     @EventHandler
     public void onBlockBreakStart(BlockBreakProgressUpdateEvent event) {
-        if (plugin.getConfig().getInt("modules.mining-fatigue") <= 0) return;
+        int miningFatigueLevel = plugin.getConfig().getInt("mining-fatigue-level", 2);
+        if (miningFatigueLevel < 1 || miningFatigueLevel > 3) return;
 
         Block block = event.getBlock();
         Location blockLocation = block.getLocation();
@@ -106,7 +107,7 @@ public class TrialChamberProtector implements Listener {
         block.getChunk().getStructures(Structure.TRIAL_CHAMBERS).forEach(structure -> {
             if (structure.getBoundingBox().contains(blockLocation.toVector())) {
                 Player player = (Player) event.getEntity();
-                player.addPotionEffect(new PotionEffect(PotionEffectType.MINING_FATIGUE, 10, plugin.getConfig().getInt("mining-fatigue-level", 2)));
+                player.addPotionEffect(new PotionEffect(PotionEffectType.MINING_FATIGUE, 10, miningFatigueLevel - 1));
             }
         });
     }
