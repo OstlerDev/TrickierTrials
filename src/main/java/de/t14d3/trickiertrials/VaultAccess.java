@@ -68,6 +68,17 @@ public final class VaultAccess {
         return legacyHasRewardedPlayer(block, playerId);
     }
 
+    public VaultKeyType classifyVault(Block block) {
+        Material keyMaterial = getRequiredKeyMaterial(block);
+        if (keyMaterial == Material.TRIAL_KEY) {
+            return VaultKeyType.NORMAL;
+        }
+        if (keyMaterial == Material.OMINOUS_TRIAL_KEY) {
+            return VaultKeyType.OMINOUS;
+        }
+        return VaultKeyType.OTHER;
+    }
+
     public boolean removeRewardedPlayer(Block block, UUID playerId) {
         if (supportsModernVaultApi) {
             if (!(block.getState() instanceof Vault vault)) {
@@ -128,6 +139,20 @@ public final class VaultAccess {
             markVaultChanged(block, vaultBlockEntity);
         }
         return removed;
+    }
+
+    private Material getRequiredKeyMaterial(Block block) {
+        if (supportsModernVaultApi) {
+            if (!(block.getState() instanceof Vault vault)) {
+                return null;
+            }
+
+            ItemStack requiredKey = vault.getKeyItem();
+            return requiredKey == null ? null : requiredKey.getType();
+        }
+
+        VaultBlockEntity vaultBlockEntity = getVaultBlockEntity(block);
+        return vaultBlockEntity == null ? null : getRequiredKey(vaultBlockEntity).getType();
     }
 
     private ItemStack getRequiredKey(VaultBlockEntity vaultBlockEntity) {

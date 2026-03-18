@@ -5,9 +5,11 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -31,25 +33,33 @@ public final class TrickierTrials extends JavaPlugin implements CommandExecutor 
     private TrialVaultResetManager trialVaultResetManager;
     private BukkitTask trialVaultResetTask;
     private VaultAccess vaultAccess;
+    private DifficultySettings difficultySettings;
+    private PlayerDifficultyRepository playerDifficultyRepository;
+    private final TrialDifficultyCalculator trialDifficultyCalculator = new TrialDifficultyCalculator();
+    private final TrialMobGearGenerator trialMobGearGenerator = new TrialMobGearGenerator();
 
     @Override
     public void onEnable() {
         // Load configuration
         saveDefaultConfig(); // Creates the config file with default values if it doesn't exist
+        saveResource("difficulty.yml", false);
         loadTrialChamberMaterials(); // Load trial chamber materials from config
         loadConfigurationOptions(); // Load decay and regeneration settings
         loadVaultResetAllowedKeyMaterials();
+        loadDifficultyConfiguration();
 
         TrialVaultRepository trialVaultRepository = new TrialVaultRepository(this);
         trialVaultRepository.loadAll();
+        playerDifficultyRepository = new PlayerDifficultyRepository(this);
+        playerDifficultyRepository.loadAll();
         vaultAccess = new VaultAccess(getLogger());
         trialVaultResetManager = new TrialVaultResetManager(trialVaultRepository, vaultAccess, trialVaultResetTime, vaultResetAllowedKeyMaterials);
 
         // Register event listeners
-        this.getServer().getPluginManager().registerEvents(new TrialSpawnerListener(this, strengthenTrialMobs, glowingEffect, secret, secretName), this);
+        this.getServer().getPluginManager().registerEvents(new TrialSpawnerListener(this, trialDifficultyCalculator, playerDifficultyRepository, trialMobGearGenerator), this);
         this.getServer().getPluginManager().registerEvents(new TrialChamberProtector(this, getTrialChamberMaterials(), decayPlacedBlocks, regenerateBrokenBlocks), this);
         this.getServer().getPluginManager().registerEvents(new TrialDeathListener(), this);
-        this.getServer().getPluginManager().registerEvents(new TrialVaultRefresher(trialVaultResetManager), this);
+        this.getServer().getPluginManager().registerEvents(new TrialVaultRefresher(this, trialVaultResetManager, vaultAccess, playerDifficultyRepository), this);
 
         startTrialVaultResetTask();
 
@@ -116,6 +126,11 @@ public final class TrickierTrials extends JavaPlugin implements CommandExecutor 
         }
     }
 
+    private void loadDifficultyConfiguration() {
+        File difficultyConfigFile = new File(getDataFolder(), "difficulty.yml");
+        difficultySettings = DifficultySettings.load(YamlConfiguration.loadConfiguration(difficultyConfigFile));
+    }
+
     private void startTrialVaultResetTask() {
         stopTrialVaultResetTask();
         if (trialVaultResetTime == -1L || trialVaultResetManager == null) {
@@ -150,6 +165,26 @@ public final class TrickierTrials extends JavaPlugin implements CommandExecutor 
         return trialChamberMaterials;
     }
 
+    public boolean isStrengthenTrialMobs() {
+        return strengthenTrialMobs;
+    }
+
+    public boolean isGlowingEffect() {
+        return glowingEffect;
+    }
+
+    public boolean isSecret() {
+        return secret;
+    }
+
+    public String getSecretName() {
+        return secretName;
+    }
+
+    public DifficultySettings getDifficultySettings() {
+        return difficultySettings;
+    }
+
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (command.getName().equalsIgnoreCase("trickiertrials")) {
@@ -159,6 +194,7 @@ public final class TrickierTrials extends JavaPlugin implements CommandExecutor 
                 loadTrialChamberMaterials(); // Reload trial chamber materials
                 loadConfigurationOptions(); // Reload other options
                 loadVaultResetAllowedKeyMaterials();
+                loadDifficultyConfiguration();
                 reloadVaultResetComponents();
                 sender.sendMessage("Trickier Trials configuration reloaded successfully.");
                 return true;

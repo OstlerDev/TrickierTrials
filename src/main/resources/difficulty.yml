@@ -1,0 +1,152 @@
+difficulty:
+  # Global softening knob for the custom scaling system.
+  # 0.0 keeps chambers at vanilla difficulty, 1.0 allows the configured maximum scaling.
+  scale: 0.75
+
+  progression:
+    # Points gained when a player redeems a regular trial vault.
+    normal-vault-points: 1
+    # Points gained when a player redeems an ominous trial vault.
+    ominous-vault-points: 2
+    # Higher values slow down progression. Progression level is derived from points and is never stored separately.
+    points-per-level: 4
+    # Caps how much progression can contribute to chamber difficulty.
+    max-level: 8
+    # Gentle per-level bonus added to a player's combat readiness after they have earned progression points.
+    score-bonus-per-level: 0.75
+
+  combat:
+    # Mean player contribution required to hit the maximum configured chamber difficulty.
+    score-at-max-difficulty: 20.0
+    # Hard cap for health scaling once the global scale and chamber score are applied.
+    max-health-multiplier: 1.75
+    # Hard cap for damage scaling once the global scale and chamber score are applied.
+    max-damage-multiplier: 2.25
+
+  # How tracked players are scored when chamber difficulty is calculated.
+  readiness:
+    armor-scores:
+      LEATHER: 1
+      GOLDEN: 2
+      CHAINMAIL: 3
+      IRON: 3
+      DIAMOND: 4
+      NETHERITE: 5
+      ELYTRA: 3
+
+    weapon-scores:
+      WOODEN_SWORD: 1
+      STONE_SWORD: 2
+      IRON_SWORD: 3
+      DIAMOND_SWORD: 4
+      NETHERITE_SWORD: 5
+      WOODEN_AXE: 1
+      STONE_AXE: 1
+      IRON_AXE: 2
+      DIAMOND_AXE: 3
+      NETHERITE_AXE: 4
+      TRIDENT: 4
+      MACE: 5
+      BOW: 3
+      CROSSBOW: 3
+      SHIELD: 1
+
+  # How spawned mobs receive armor and weapons after chamber difficulty is calculated.
+  mob-gear:
+    # Small random spread applied to scaled difficulty so mobs from the same chamber
+    # can roll slightly different equipment without feeling chaotic.
+    quality-jitter: 0.12
+
+    armor:
+      # Chance that a mob receives any armor at all.
+      overall-chance:
+        min: 0.00
+        max: 0.85
+
+      # Per-slot fill chances once armor generation is active.
+      slot-chances:
+        helmet:
+          min: 0.00
+          max: 0.55
+        chestplate:
+          min: 0.00
+          max: 0.75
+        leggings:
+          min: 0.00
+          max: 0.70
+        boots:
+          min: 0.00
+          max: 0.60
+
+      # Each tier unlocks at its min-difficulty and remains possible afterward.
+      # Higher tiers do not replace lower tiers entirely; weight controls relative likelihood.
+      tiers:
+        leather:
+          min-difficulty: 0.05
+          weight: 1.00
+          pieces:
+            helmet: LEATHER_HELMET
+            chestplate: LEATHER_CHESTPLATE
+            leggings: LEATHER_LEGGINGS
+            boots: LEATHER_BOOTS
+        golden:
+          min-difficulty: 0.10
+          weight: 0.70
+          pieces:
+            helmet: GOLDEN_HELMET
+            chestplate: GOLDEN_CHESTPLATE
+            leggings: GOLDEN_LEGGINGS
+            boots: GOLDEN_BOOTS
+        chainmail:
+          min-difficulty: 0.20
+          weight: 0.90
+          pieces:
+            helmet: CHAINMAIL_HELMET
+            chestplate: CHAINMAIL_CHESTPLATE
+            leggings: CHAINMAIL_LEGGINGS
+            boots: CHAINMAIL_BOOTS
+        iron:
+          min-difficulty: 0.35
+          weight: 1.10
+          pieces:
+            helmet: IRON_HELMET
+            chestplate: IRON_CHESTPLATE
+            leggings: IRON_LEGGINGS
+            boots: IRON_BOOTS
+        diamond:
+          min-difficulty: 0.70
+          weight: 0.55
+          pieces:
+            helmet: DIAMOND_HELMET
+            chestplate: DIAMOND_CHESTPLATE
+            leggings: DIAMOND_LEGGINGS
+            boots: DIAMOND_BOOTS
+        netherite:
+          min-difficulty: 0.92
+          weight: 0.08
+          pieces:
+            helmet: NETHERITE_HELMET
+            chestplate: NETHERITE_CHESTPLATE
+            leggings: NETHERITE_LEGGINGS
+            boots: NETHERITE_BOOTS
+
+    weapons:
+      # Chance that a mob with an empty main hand receives a weapon.
+      overall-chance:
+        min: 0.00
+        max: 0.40
+
+      # Choices unlock by difficulty and are selected with weighted randomness.
+      choices:
+        iron_sword:
+          min-difficulty: 0.20
+          weight: 1.00
+          material: IRON_SWORD
+        diamond_sword:
+          min-difficulty: 0.65
+          weight: 0.35
+          material: DIAMOND_SWORD
+        netherite_sword:
+          min-difficulty: 0.92
+          weight: 0.05
+          material: NETHERITE_SWORD
