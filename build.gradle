@@ -20,6 +20,7 @@ repositories {
 
 
 dependencies {
+    implementation 'com.tchristofferson:ConfigUpdater:2.2'
     paperweight.paperDevBundle("1.21.11-R0.1-SNAPSHOT")
 }
 

@@ -1,19 +1,22 @@
 package de.t14d3.trickiertrials;
 
+import com.tchristofferson.configupdater.ConfigUpdater;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
 
 public final class TrickierTrials extends JavaPlugin implements CommandExecutor {
 
@@ -38,15 +41,29 @@ public final class TrickierTrials extends JavaPlugin implements CommandExecutor 
     private final TrialDifficultyCalculator trialDifficultyCalculator = new TrialDifficultyCalculator();
     private final TrialMobGearGenerator trialMobGearGenerator = new TrialMobGearGenerator();
 
+    private record RuntimeConfiguration(
+            List<Material> trialChamberMaterials,
+            Set<Material> vaultResetAllowedKeyMaterials,
+            boolean decayPlacedBlocks,
+            boolean regenerateBrokenBlocks,
+            boolean strengthenTrialMobs,
+            boolean glowingEffect,
+            boolean secret,
+            String secretName,
+            long trialVaultResetTime,
+            DifficultySettings difficultySettings
+    ) {
+    }
+
     @Override
     public void onEnable() {
-        // Load configuration
-        saveDefaultConfig(); // Creates the config file with default values if it doesn't exist
-        saveResource("difficulty.yml", false);
-        loadTrialChamberMaterials(); // Load trial chamber materials from config
-        loadConfigurationOptions(); // Load decay and regeneration settings
-        loadVaultResetAllowedKeyMaterials();
-        loadDifficultyConfiguration();
+        try {
+            applyRuntimeConfiguration(loadRuntimeConfiguration());
+        } catch (Exception exception) {
+            getLogger().log(Level.SEVERE, "Failed to load plugin configuration.", exception);
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
 
         TrialVaultRepository trialVaultRepository = new TrialVaultRepository(this);
         trialVaultRepository.loadAll();
@@ -72,63 +89,98 @@ public final class TrickierTrials extends JavaPlugin implements CommandExecutor 
         stopTrialVaultResetTask();
     }
 
-    private void loadTrialChamberMaterials() {
-        FileConfiguration config = getConfig();
+    private RuntimeConfiguration loadRuntimeConfiguration() throws IOException {
+        FileConfiguration config = YamlConfiguration.loadConfiguration(updateBundledConfig("config.yml"));
+        return new RuntimeConfiguration(
+                List.copyOf(loadTrialChamberMaterials(config)),
+                Set.copyOf(loadVaultResetAllowedKeyMaterials(config)),
+                config.getBoolean("decay-placed-blocks", true),
+                config.getBoolean("regenerate-broken-blocks", true),
+                config.getBoolean("strengthen-trial-mobs", true),
+                config.getBoolean("glowing-effect", true),
+                config.getBoolean("easter-egg", false),
+                config.getString("easter-egg-name", "Klein Tiade"),
+                config.getLong("trial-vault-reset-time", 86400000L),
+                loadDifficultyConfiguration(updateBundledConfig("difficulty.yml"))
+        );
+    }
+
+    private File updateBundledConfig(String resourceName) throws IOException {
+        if (!getDataFolder().exists() && !getDataFolder().mkdirs()) {
+            throw new IOException("Could not create plugin data folder.");
+        }
+
+        File configFile = new File(getDataFolder(), resourceName);
+        if (!configFile.exists()) {
+            if ("config.yml".equals(resourceName)) {
+                saveDefaultConfig();
+            } else {
+                saveResource(resourceName, false);
+            }
+        }
+
+        if (!configFile.exists()) {
+            throw new IOException("Could not create " + resourceName + ".");
+        }
+
+        ConfigUpdater.update(this, resourceName, configFile);
+        return configFile;
+    }
+
+    private void applyRuntimeConfiguration(RuntimeConfiguration configuration) {
+        reloadConfig();
+        trialChamberMaterials = configuration.trialChamberMaterials();
+        vaultResetAllowedKeyMaterials = configuration.vaultResetAllowedKeyMaterials();
+        decayPlacedBlocks = configuration.decayPlacedBlocks();
+        regenerateBrokenBlocks = configuration.regenerateBrokenBlocks();
+        strengthenTrialMobs = configuration.strengthenTrialMobs();
+        glowingEffect = configuration.glowingEffect();
+        secret = configuration.secret();
+        secretName = configuration.secretName();
+        trialVaultResetTime = configuration.trialVaultResetTime();
+        difficultySettings = configuration.difficultySettings();
+    }
+
+    private List<Material> loadTrialChamberMaterials(FileConfiguration config) {
         List<String> blockNames = config.getStringList("blocks-to-protect");
-        trialChamberMaterials = new ArrayList<>();
+        List<Material> materials = new ArrayList<>();
 
         for (String name : blockNames) {
             try {
                 Material material = Material.valueOf(name);
-                trialChamberMaterials.add(material);
+                materials.add(material);
             } catch (IllegalArgumentException e) {
                 getLogger().warning("Invalid material in config: " + name);
             }
         }
+
+        return materials;
     }
 
-    private void loadConfigurationOptions() {
-        FileConfiguration config = getConfig();
-        decayPlacedBlocks = config.getBoolean("decay-placed-blocks", true);
-        regenerateBrokenBlocks = config.getBoolean("regenerate-broken-blocks", true);
-        strengthenTrialMobs = config.getBoolean("strengthen-trial-mobs", true);
-        trialVaultResetTime = config.getLong("trial-vault-reset-time", 86400000L);
-        glowingEffect = config.getBoolean("glowing-effect", true);
-        secret = config.getBoolean("easter-egg", false);
-        secretName = config.getString("easter-egg-name", "Klein Tiade");
-
-        // Config migrator
-        if (config.get("decay-delay") == null) {
-            config.set("decay-delay", "10 #Decay delay in seconds");
-        }
-        if (config.get("regenerate-delay") == null) {
-            config.set("regenerate-delay", "10 #Regeneration delay in seconds, plus a random delay of up to 100 ticks");
-        }
-        if (config.get("mining-fatigue-level") == null) {
-            config.set("mining-fatigue-level", 2);
-        }
-    }
-
-    private void loadVaultResetAllowedKeyMaterials() {
-        FileConfiguration config = getConfig();
+    private Set<Material> loadVaultResetAllowedKeyMaterials(FileConfiguration config) {
         List<String> materialNames = config.getStringList("vault-reset-allowed-key-materials");
         if (materialNames.isEmpty() && !config.isList("vault-reset-allowed-key-materials")) {
             materialNames = List.of("TRIAL_KEY", "OMINOUS_TRIAL_KEY");
         }
 
-        vaultResetAllowedKeyMaterials = new HashSet<>();
+        Set<Material> allowedMaterials = new HashSet<>();
         for (String name : materialNames) {
             try {
-                vaultResetAllowedKeyMaterials.add(Material.valueOf(name));
+                allowedMaterials.add(Material.valueOf(name));
             } catch (IllegalArgumentException e) {
                 getLogger().warning("Invalid vault key material in config: " + name);
             }
         }
+
+        return allowedMaterials;
     }
 
-    private void loadDifficultyConfiguration() {
-        File difficultyConfigFile = new File(getDataFolder(), "difficulty.yml");
-        difficultySettings = DifficultySettings.load(YamlConfiguration.loadConfiguration(difficultyConfigFile));
+    private DifficultySettings loadDifficultyConfiguration(File difficultyConfigFile) {
+        try {
+            return DifficultySettings.load(YamlConfiguration.loadConfiguration(difficultyConfigFile));
+        } catch (IllegalArgumentException exception) {
+            throw new IllegalStateException("Invalid difficulty.yml: " + exception.getMessage(), exception);
+        }
     }
 
     private void startTrialVaultResetTask() {
@@ -189,14 +241,14 @@ public final class TrickierTrials extends JavaPlugin implements CommandExecutor 
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (command.getName().equalsIgnoreCase("trickiertrials")) {
             if (args.length > 0 && args[0].equalsIgnoreCase("reload")) {
-                // Reload the configuration
-                reloadConfig();
-                loadTrialChamberMaterials(); // Reload trial chamber materials
-                loadConfigurationOptions(); // Reload other options
-                loadVaultResetAllowedKeyMaterials();
-                loadDifficultyConfiguration();
-                reloadVaultResetComponents();
-                sender.sendMessage("Trickier Trials configuration reloaded successfully.");
+                try {
+                    applyRuntimeConfiguration(loadRuntimeConfiguration());
+                    reloadVaultResetComponents();
+                    sender.sendMessage("Trickier Trials configuration reloaded successfully.");
+                } catch (Exception exception) {
+                    getLogger().log(Level.SEVERE, "Failed to reload plugin configuration.", exception);
+                    sender.sendMessage("Failed to reload Trickier Trials configuration. Check the server log for details.");
+                }
                 return true;
             } else {
                 // Handle other command logic here (if applicable)
