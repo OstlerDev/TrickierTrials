@@ -1,5 +1,6 @@
 plugins {
     id 'java'
+    id 'com.gradleup.shadow' version '9.4.0'
     id("io.papermc.paperweight.userdev") version "2.0.0-beta.19"
 }
 
@@ -49,4 +50,13 @@ processResources {
     filesMatching('plugin.yml') {
         expand props
     }
+}
+
+tasks.named('jar') {
+    archiveClassifier.set('dev')
+}
+
+tasks.named('shadowJar') {
+    archiveClassifier.set('')
+    relocate 'com.tchristofferson.configupdater', 'de.t14d3.trickiertrials.lib.configupdater'
 }

@@ -74,7 +74,11 @@ public record DifficultySettings(
     private static Map<Material, Double> loadMaterialScores(ConfigurationSection section) {
         Map<Material, Double> scores = new HashMap<>();
         for (String key : section.getKeys(false)) {
-            scores.put(requiredMaterial(section, key), requiredNonNegativeDouble(section, key));
+            try {
+                scores.put(Material.valueOf(key.toUpperCase(Locale.ROOT)), requiredNonNegativeDouble(section, key));
+            } catch (IllegalArgumentException exception) {
+                throw invalidValue(section, key, "invalid material: " + key);
+            }
         }
         return scores;
     }
